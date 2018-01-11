@@ -15,31 +15,34 @@
 # limitations under the License.
 
 command -v ticker >/dev/null 2>&1 || exit 1
+PKG="wallstreet"
 
 [ -n "$TMDIR" ] || TMPDIR=$(mktemp -d /dev/shm/$PKG.XXXXXXXXX)
 trap "rm -rf $TMPDIR; pkill -f -9 lib/wallstreet/ >/dev/null 2>&1; exit" HUP INT QUIT TERM
 URL=http://google.com/finance
 
+# modified + and - to use different feeds.  Wasn't working before.
+
 while true; do
 	case "$1" in
-		+)
-			while [ ! -s "$TMPDIR/finance" ]; do
-				w3m -dump "$URL" >$TMPDIR/finance 2>/dev/null
+		marketpulse)
+			pkill -f -9 "rsstail.*37295"
+			rsstail -H -N -p -d -i 60 -r -b 37295 -u http://feeds.marketwatch.com/marketwatch/marketpulse/ >$TMPDIR/marketpulse 2>/dev/null &
+			while [ ! -s $TMPDIR/marketpulse ]; do
+				# Wait for marketpulse
+				sleep 1
 			done
-			text=$(cat $TMPDIR/finance | \
-				egrep "[0-9]%|^[A-Z]+\s\s+.*[0-9]" | \
-				egrep "\+[0-9\.%]+[^\s\)]|\s[\(\s][0-9\.]+%[\)\s]" | \
-				sed -e ':a;N;$!ba;s/\n/ ... /g' -e "s/\s\+/  /g")
+			text=$(cat $TMPDIR/marketpulse | sed -e ':a;N;$!ba;s/\n/ ... /g')
 			ticker -u -d 0.2 -f brightgreen "$text"
 		;;
-		-)
-			while [ ! -s "$TMPDIR/finance" ]; do
-				w3m -dump "$URL" >$TMPDIR/finance 2>/dev/null
+		bulletins)
+			pkill -f -9 "rsstail.*37294"
+			rsstail -H -N -p -d -i 60 -r -b 37294 -u http://feeds.marketwatch.com/marketwatch/bulletins >$TMPDIR/bulletins 2>/dev/null &
+			while [ ! -s $TMPDIR/bulletins ]; do
+				# Wait for bulletins
+				sleep 1
 			done
-			text=$(cat $TMPDIR/finance | \
-				egrep "[0-9]%|^[A-Z]+\s\s+.*[0-9]" | \
-				egrep "\-[0-9\.%]+[^\s\)]" | \
-				sed -e ':a;N;$!ba;s/\n/ ... /g' -e "s/\s\+/  /g")
+			text=$(cat $TMPDIR/bulletins | sed -e ':a;N;$!ba;s/\n/ ... /g')
 			ticker -u -d 0.3 -f brightred "$text"
 		;;
 		topNews|*)
@@ -56,3 +59,4 @@ while true; do
 	sleep 60
 done
 rm -rf "$TMPDIR"
+

@@ -1,3 +1,7 @@
+Forked from dustinkirkland/hollywood
+
+Contanerized into https://hub.docker.com/r/failathon/wallstreet/
+
 Launch Byobu
 Open a random number of splits, random sizes
 In each split, run a noisy text app
